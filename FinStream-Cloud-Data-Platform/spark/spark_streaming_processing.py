@@ -16,3 +16,5 @@ df.selectExpr("CAST(value AS STRING)").writeStream \
     .format("console") \
     .start() \
     .awaitTermination()
+
+##
