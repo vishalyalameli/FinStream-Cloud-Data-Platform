@@ -1,5 +1,24 @@
 Perfect 👍 let’s make it super simple — daily steps (copy-paste style) 🔥
 
+
+OR  ------------------------------------------------->>> If Error Come 
+
+docker-compose down
+
+docker volume prune
+
+
+E:\FinStream-Cloud-Data-Platform\FinStream-Cloud-Data-Platform\docker>docker volume prune
+WARNING! This will remove anonymous local volumes not used by at least one container.
+Are you sure you want to continue? [y/N] y
+
+E:\FinStream-Cloud-Data-Platform\FinStream-Cloud-Data-Platform\docker>docker rm -f kafka zookeeper postgres spark
+
+E:\FinStream-Cloud-Data-Platform\FinStream-Cloud-Data-Platform\docker>docker-compose up -d
+[+] up 5/5
+ ✔ Network docker_default Created                                                                                                                           0.0s ✔ Container spark        Started                                                                                                                           1.7s ✔ Container postgres     Started                                                                                                                           1.6s ✔ Container zookeeper    Started                                                                                                                           1.4s ✔ Container kafka        Started                                                                                                                           1.9s
+E:\FinStream-Cloud-Data-Platform\FinStream-Cloud-Data-Platform\docker>docker logs kafka
+
 🚀 ✅ COMPLETE RUN STEPS (every time)
 🔹 STEP 1: Start Docker
 

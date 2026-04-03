@@ -8,7 +8,7 @@ producer = KafkaProducer(
     value_serializer=lambda v: json.dumps(v).encode('utf-8')
 )
 
-url = "https://api.coingecko.com/api/v3/coins/markets"
+url = "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd"
 
 while True:
     try:
