@@ -30,7 +30,7 @@ services:
     environment:
       POSTGRES_PASSWORD: admin
     ports:
-      - "5432:5432"
+      - "5433:5432"
 
   spark:
     image: apache/spark:3.5.0
