@@ -45,6 +45,8 @@ cd ..
 Run:
 
 python ingestion/api_ingestion.py
+E:\FinStream-Cloud-Data-Platform\FinStream-Cloud-Data-Platform>python -m ingestion.api_ingestion
+Sent: {'id': 'bitcoin', 'symbol': 'btc', 'price': 68647, 'market_cap': 1373844591680, 'timestamp': 1775585691.6828597}
 
 👉 This sends data → Kafka
 
