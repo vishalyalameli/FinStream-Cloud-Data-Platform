@@ -60,6 +60,7 @@ Then:
 
 cd /opt/spark-apps
 
+
 Then run:
 
 /opt/spark/bin/spark-submit \

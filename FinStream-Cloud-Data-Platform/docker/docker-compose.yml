@@ -36,11 +36,19 @@ services:
       - "5432:5432"
 
   spark:
-    image: apache/spark:3.5.0
-    container_name: spark
-    command: ["sleep", "infinity"]
-    ports:
-      - "8080:8080"
-    volumes:
-      - ../:/app
-    working_dir: /app
+   image: apache/spark:3.5.0
+   container_name: spark
+   command: ["sleep", "infinity"]   # ✅ keeps container running
+   ports:
+    - "8080:8080"
+   volumes:
+    - ../:/app
+   working_dir: /app
+
+   environment:
+    - KAFKA_BOOTSTRAP=kafka:9092
+    - KAFKA_TOPIC=transactions
+    - POSTGRES_URL=jdbc:postgresql://postgres:5432/finstream
+    - POSTGRES_USER=postgres
+    - POSTGRES_PASSWORD=admin
+    - POSTGRES_TABLE=transactions

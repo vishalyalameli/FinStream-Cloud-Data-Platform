@@ -2,9 +2,6 @@ from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, from_json
 from pyspark.sql.types import StructType, StringType, DoubleType
 import os
-from dotenv import load_dotenv
-
-load_dotenv()
 
 KAFKA_BOOTSTRAP = os.getenv("KAFKA_BOOTSTRAP")
 KAFKA_TOPIC = os.getenv("KAFKA_TOPIC")
@@ -95,7 +92,7 @@ def write_to_postgres(batch_df, batch_id):
 
     except Exception as e:
         print("❌ Error writing to DB:", e)
-        
+
 query = df_final.writeStream \
     .foreachBatch(write_to_postgres) \
     .outputMode("append") \
