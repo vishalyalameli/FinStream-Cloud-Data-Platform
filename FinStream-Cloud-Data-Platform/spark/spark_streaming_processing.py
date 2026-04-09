@@ -3,23 +3,34 @@ from pyspark.sql.functions import col, from_json
 from pyspark.sql.types import StructType, StringType, DoubleType
 import os
 
-KAFKA_BOOTSTRAP = os.getenv("KAFKA_BOOTSTRAP")
-KAFKA_TOPIC = os.getenv("KAFKA_TOPIC")
+# ========================
+# ENV LOADER (SAFE)
+# ========================
+def get_env(key):
+    value = os.getenv(key)
+    if not value:
+        raise Exception(f"❌ Missing ENV: {key}")
+    return value
 
-POSTGRES_URL = os.getenv("POSTGRES_URL")
-POSTGRES_USER = os.getenv("POSTGRES_USER")
-POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD")
-POSTGRES_TABLE = os.getenv("POSTGRES_TABLE")
+KAFKA_BOOTSTRAP = get_env("KAFKA_BOOTSTRAP")
+KAFKA_TOPIC = get_env("KAFKA_TOPIC")
+
+POSTGRES_URL = get_env("POSTGRES_URL")
+POSTGRES_USER = get_env("POSTGRES_USER")
+POSTGRES_PASSWORD = get_env("POSTGRES_PASSWORD")
+POSTGRES_TABLE = get_env("POSTGRES_TABLE")
+
+print("\n🔧 CONFIG")
+print("Kafka:", KAFKA_BOOTSTRAP)
+print("Topic:", KAFKA_TOPIC)
+print("Postgres:", POSTGRES_URL)
+print("Table:", POSTGRES_TABLE)
 
 # ========================
 # SPARK SESSION
 # ========================
 spark = SparkSession.builder \
-    .appName("FinStreamDynamic") \
-    .config(
-        "spark.jars.packages",
-        "org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.0,org.postgresql:postgresql:42.7.3"
-    ) \
+    .appName("FinStreamFinal") \
     .getOrCreate()
 
 spark.sparkContext.setLogLevel("ERROR")
@@ -39,10 +50,14 @@ schema = StructType() \
 # ========================
 df = spark.readStream \
     .format("kafka") \
-    .option("kafka.bootstrap.servers", KAFKA_BOOTSTRAP.replace("localhost", "kafka")) \
+    .option("kafka.bootstrap.servers", KAFKA_BOOTSTRAP) \
     .option("subscribe", KAFKA_TOPIC) \
+    .option("startingOffsets", "earliest") \
     .load()
 
+# ========================
+# PARSE JSON
+# ========================
 df_json = df.selectExpr("CAST(value AS STRING)")
 
 df_parsed = df_json.select(
@@ -52,7 +67,7 @@ df_parsed = df_json.select(
 # ========================
 # PROCESSING
 # ========================
-df_clean = df_parsed.filter(col("price") > 0)
+df_clean = df_parsed.filter(col("price").isNotNull() & (col("price") > 0))
 
 df_final = df_clean.withColumn(
     "status",
@@ -64,20 +79,18 @@ df_final = df_clean.withColumn(
 # ========================
 def write_to_postgres(batch_df, batch_id):
 
-    print(f"\n🔥 Processing batch: {batch_id}")
+    print(f"\n🔥 Batch: {batch_id}")
 
-    count = batch_df.count()
-    print(f"📊 Rows in batch: {count}")
-
-    # 👉 SHOW DATA (IMPORTANT)
-    batch_df.show(truncate=False)
-
-    # ❗ If no data → stop here
-    if count == 0:
-        print("⚠️ No data in this batch, skipping write")
+    if batch_df.isEmpty():
+        print("⚠️ Empty batch")
         return
 
+    print("📊 Count:", batch_df.count())
+    batch_df.show(5, truncate=False)
+
     try:
+        print("🚀 Writing to PostgreSQL...")
+
         batch_df.write \
             .format("jdbc") \
             .option("url", POSTGRES_URL) \
@@ -88,13 +101,21 @@ def write_to_postgres(batch_df, batch_id):
             .mode("append") \
             .save()
 
-        print("✅ Data written to PostgreSQL")
+        print("✅ WRITE SUCCESS")
 
     except Exception as e:
-        print("❌ Error writing to DB:", e)
+        print("❌ ERROR:", e)
 
+# ========================
+# START STREAM
+# ========================
 query = df_final.writeStream \
     .foreachBatch(write_to_postgres) \
     .outputMode("append") \
-    .trigger(processingTime='10 seconds') \
+    .trigger(processingTime="10 seconds") \
+    .option("checkpointLocation", "/tmp/checkpoints/finstream") \
     .start()
+
+print("🚀 STREAM STARTED...")
+
+query.awaitTermination()

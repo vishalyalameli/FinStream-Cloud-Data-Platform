@@ -93,3 +93,37 @@ If you want:
 
 Just say:
 👉 “auto setup” 🔥
+
+
+
+################# new lates
+
+
+🧱 STEP 3 — FULL RESET (VERY IMPORTANT)
+cd docker
+docker-compose down -v
+docker-compose up -d
+
+👉 -v removes old broken configs
+
+🧱 STEP 4 — CREATE TOPIC AGAIN
+docker exec -it kafka bash
+kafka-topics --create \
+--topic transactions \
+--bootstrap-server kafka:29092 \
+--partitions 1 \
+--replication-factor 1
+🧱 STEP 5 — RUN PIPELINE
+Terminal 1 (INGESTION)
+python -m ingestion.api_ingestion
+Terminal 2 (SPARK)
+docker exec -it spark bash
+/opt/spark/bin/spark-submit \
+--conf spark.jars.ivy=/tmp/.ivy \
+--packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.0,org.postgresql:postgresql:42.7.3 \
+spark/spark_streaming_processing.py
+🎯 EXPECTED OUTPUT
+🔥 Processing batch: 0
+📊 Rows: 10
+🚀 Writing to DB...
+✅ WRITE SUCCESS
