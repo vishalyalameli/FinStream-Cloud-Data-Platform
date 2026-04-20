@@ -86,26 +86,44 @@ def write_to_postgres(batch_df, batch_id):
         return
 
     print("📊 Count:", batch_df.count())
-    batch_df.show(5, truncate=False)
 
+    # ========================
+    # 1. WRITE TO DOCKER DB
+    # ========================
     try:
-        print("🚀 Writing to PostgreSQL...")
-
         batch_df.write \
             .format("jdbc") \
-            .option("url", POSTGRES_URL) \
-            .option("dbtable", POSTGRES_TABLE) \
-            .option("user", POSTGRES_USER) \
-            .option("password", POSTGRES_PASSWORD) \
+            .option("url", "jdbc:postgresql://postgres:5432/finstream") \
+            .option("dbtable", "transactions") \
+            .option("user", "postgres") \
+            .option("password", "admin") \
             .option("driver", "org.postgresql.Driver") \
             .mode("append") \
             .save()
 
-        print("✅ WRITE SUCCESS")
+        print("✅ Docker DB write success")
 
     except Exception as e:
-        print("❌ ERROR:", e)
+        print("❌ Docker DB error:", e)
 
+    # ========================
+    # 2. WRITE TO LOCAL DB
+    # ========================
+    try:
+        batch_df.write \
+            .format("jdbc") \
+            .option("url", "jdbc:postgresql://host.docker.internal:5432/finstream") \
+            .option("dbtable", "transactions") \
+            .option("user", "postgres") \
+            .option("password", "admin") \
+            .option("driver", "org.postgresql.Driver") \
+            .mode("append") \
+            .save()
+
+        print("✅ Local DB write success")
+
+    except Exception as e:
+        print("❌ Local DB error:", e)
 # ========================
 # START STREAM
 # ========================
