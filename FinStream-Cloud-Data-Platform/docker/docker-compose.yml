@@ -41,19 +41,42 @@ services:
       - "5432:5432"
 
   spark:
-    image: apache/spark:3.5.0
+    build:
+      context: .
+      dockerfile: Dockerfile.spark
+
     container_name: spark
+
     command: ["sleep", "infinity"]
+
     ports:
       - "8080:8080"
+
     volumes:
       - ../:/app
+
     working_dir: /app
 
     environment:
-      - KAFKA_BOOTSTRAP=kafka:29092   # 🔥 IMPORTANT FIX
+      - KAFKA_BOOTSTRAP=kafka:29092
       - KAFKA_TOPIC=transactions
+
       - POSTGRES_URL=jdbc:postgresql://postgres:5432/finstream
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=admin
       - POSTGRES_TABLE=transactions
+
+      - SNOWFLAKE_ACCOUNT=qa85237.ap-southeast-7.aws
+      - SNOWFLAKE_USER=yalamelivishal55
+      - SNOWFLAKE_PASSWORD=Vishal$1234
+
+      - SNOWFLAKE_WAREHOUSE=COMPUTE_WH
+      - SNOWFLAKE_DATABASE=FINSTREAM_DB
+      - SNOWFLAKE_SCHEMA=PUBLIC
+      - SNOWFLAKE_TABLE=TRANSACTIONS
+
+    depends_on:
+      - kafka
+      - postgres
+ 
+  

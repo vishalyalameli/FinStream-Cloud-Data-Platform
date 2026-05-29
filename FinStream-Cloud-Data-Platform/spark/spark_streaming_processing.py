@@ -2,6 +2,7 @@ from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, from_json
 from pyspark.sql.types import StructType, StringType, DoubleType
 import os
+import snowflake.connector
 
 # ========================
 # ENV LOADER (SAFE)
@@ -19,6 +20,15 @@ POSTGRES_URL = get_env("POSTGRES_URL")
 POSTGRES_USER = get_env("POSTGRES_USER")
 POSTGRES_PASSWORD = get_env("POSTGRES_PASSWORD")
 POSTGRES_TABLE = get_env("POSTGRES_TABLE")
+
+SNOWFLAKE_ACCOUNT = get_env("SNOWFLAKE_ACCOUNT")
+SNOWFLAKE_USER = get_env("SNOWFLAKE_USER")
+SNOWFLAKE_PASSWORD = get_env("SNOWFLAKE_PASSWORD")
+
+SNOWFLAKE_WAREHOUSE = get_env("SNOWFLAKE_WAREHOUSE")
+SNOWFLAKE_DATABASE = get_env("SNOWFLAKE_DATABASE")
+SNOWFLAKE_SCHEMA = get_env("SNOWFLAKE_SCHEMA")
+SNOWFLAKE_TABLE = get_env("SNOWFLAKE_TABLE")
 
 print("\n🔧 CONFIG")
 print("Kafka:", KAFKA_BOOTSTRAP)
@@ -103,8 +113,62 @@ def write_to_postgres(batch_df, batch_id):
 
         print("✅ Docker DB write success")
 
+        write_to_snowflake(batch_df)
+
     except Exception as e:
         print("❌ Docker DB error:", e)
+
+    
+def write_to_snowflake(batch_df):
+
+    conn = None
+    cursor = None
+
+    try:
+
+        conn = snowflake.connector.connect(
+            user=SNOWFLAKE_USER,
+            password=SNOWFLAKE_PASSWORD,
+            account=SNOWFLAKE_ACCOUNT,
+            warehouse=SNOWFLAKE_WAREHOUSE,
+            database=SNOWFLAKE_DATABASE,
+            schema=SNOWFLAKE_SCHEMA
+        )
+
+        cursor = conn.cursor()
+
+        rows = batch_df.collect()
+
+        for row in rows:
+
+            cursor.execute(f"""
+                INSERT INTO {SNOWFLAKE_TABLE}
+                (id, symbol, price, market_cap, timestamp, status)
+                VALUES (
+                    '{row["id"]}',
+                    '{row["symbol"]}',
+                    {row["price"]},
+                    {row["market_cap"]},
+                    {row["timestamp"]},
+                    '{row["status"]}'
+                )
+            """)
+
+        conn.commit()
+
+        print("✅ Snowflake write success")
+
+    except Exception as e:
+        print("❌ Snowflake Error:", e)
+
+    finally:
+
+        if cursor:
+            cursor.close()
+
+        if conn:
+            conn.close()
+
 
     # ========================
     # 2. WRITE TO LOCAL DB
